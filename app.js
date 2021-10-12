@@ -4,7 +4,7 @@ var canvas;
 /** @type {WebGLRenderingContext} */
 var gl;
 
-const disk_radius = 250.0;
+const disk_radius = 300.0;
 
 function main() {
     canvas = document.getElementById("glCanvas");
@@ -57,7 +57,8 @@ function main() {
     var diskVertexBufferObj = gl.createBuffer();
 
     function render() {
-        //gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.clearColor(0.968627451, 0.929411765, 0.88627451, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT)
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         gl.enable(gl.BLEND);
 
@@ -132,12 +133,14 @@ function main() {
         var y = e.target.height - (e.clientY - rect.top);  //y position within the element.
 
         var toberemove = []
-        Bacteria.allBacterias.forEach(bacteria => {
+        for (var i = 0; i < Bacteria.allBacterias.length; i ++) {
+            var bacteria = Bacteria.allBacterias[i];
             if (bacteria.colideWithPoint(x, y)) {
                 toberemove.push(Bacteria.allBacterias.indexOf(bacteria));
-                return;
+                break;
             }
-        })
+        }
+
 
         toberemove.forEach(index => {
             Bacteria.allBacterias.splice(index, 1)
@@ -247,7 +250,7 @@ class Bacteria {
 
     static getRandomColor() {
         //hslToRgb(~~(360 * Math.random()), 0.7, 0.8);
-        return rgbTopercentage(hslToRgb(Math.random() , 0.7, 0.8));
+        return rgbTopercentage(hslToRgb(Math.random(), 0.7, 0.8));
         return vec3(1.0, 0.0, 0.0);
     }
 
@@ -319,7 +322,7 @@ void main() {
         //transparent cutout
         gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
     } else {
-        gl_FragColor = vec4(0.968627451, 0.145098039, 0.521568627, 1.0);
+        gl_FragColor = vec4(0.42745098, 0.407843137, 0.458823529, 1.0);
     }
 }
 `;
