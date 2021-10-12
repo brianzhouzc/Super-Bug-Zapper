@@ -4,6 +4,8 @@ var canvas;
 /** @type {WebGLRenderingContext} */
 var gl;
 
+const disk_radius = 250.0;
+
 function main() {
     canvas = document.getElementById("glCanvas");
     gl = canvas.getContext("webgl");
@@ -45,30 +47,27 @@ function main() {
 
 
     //var circlevert = generateCircleVerticies(0, 0, 0, '');
-    var p1 = getRandomPointOnCircumference(300, 300, 250);
-    var p2 = getRandomPointOnCircumference(300, 300, 250);
+    Bacteria.allBacterias.push(Bacteria.generateRandomBacteria());
+    Bacteria.allBacterias.push(Bacteria.generateRandomBacteria());
+    console.log(Bacteria.allBacterias)
 
-    var bacterias = [
-        new Bacteria(p1[0], p1[1], 10),
-        new Bacteria(p2[0], p2[1], 10)
-
-    ];
     var circlevert = [];
 
     var circlebufferobj = gl.createBuffer();
     var diskVertexBufferObj = gl.createBuffer();
 
-    var radius = 250.0;
     function render() {
         //gl.clear(gl.COLOR_BUFFER_BIT);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         gl.enable(gl.BLEND);
 
-        bacterias[0].radius += 1;
-        bacterias[1].radius += 1;
+        circlevert = [];
+        console.log(Bacteria.allBacterias.length)
 
-        circlevert = bacterias[0].generateVerticies();
-        circlevert.push(...bacterias[1].generateVerticies());
+        Bacteria.allBacterias.forEach(bacteria => {
+            bacteria.radius += 1;
+            circlevert.push(...bacteria.generateVerticies());
+        })
 
         gl.useProgram(bacteriaProgram);
         gl.bindBuffer(gl.ARRAY_BUFFER, circlebufferobj);
@@ -97,9 +96,7 @@ function main() {
 
         gl.drawArrays(gl.TRIANGLES, 0, circlevert.length / 5 * 2);
 
-        if (bacterias[0].colideWith(bacterias[1])) {
-            alert('TOUCHED');
-        }
+
         gl.useProgram(diskProgram);
         gl.bindBuffer(gl.ARRAY_BUFFER, diskVertexBufferObj);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(diskVerts), gl.STATIC_DRAW);
@@ -120,7 +117,7 @@ function main() {
         //radius += 1;
         gl.uniform1f(widthHandle, canvas.width / 2);
         gl.uniform1f(heightHandle, canvas.height / 2);
-        gl.uniform1f(radiusHandle, radius);
+        gl.uniform1f(radiusHandle, disk_radius);
 
         gl.drawArrays(gl.TRIANGLES, 0, 6);
 
@@ -133,11 +130,23 @@ function main() {
         var rect = e.target.getBoundingClientRect();
         var x = e.clientX - rect.left; //x position within the element.
         var y = e.target.height - (e.clientY - rect.top);  //y position within the element.
-        var p = getRandomPointOnCircumference(300, 300, 250);
-        console.log(p)
-        circlevert.push(...generateCircleVerticies(p[0], p[1], 50));
-        //circlevert.push(...generateCircleVerticies(x, y, 50));
-        //console.log(x, y);
+
+        var toberemove = []
+        Bacteria.allBacterias.forEach(bacteria => {
+            if (bacteria.colideWithPoint(x, y)) {
+                toberemove.push(Bacteria.allBacterias.indexOf(bacteria));
+                return;
+            }
+        })
+
+        toberemove.forEach(index => {
+            Bacteria.allBacterias.splice(index, 1)
+
+        })
+
+        for (var i = 0; i < toberemove.length; i++) {
+            Bacteria.allBacterias.push(Bacteria.generateRandomBacteria())
+        }
     }
 
 }
@@ -155,7 +164,7 @@ function generateCircleVerticies(cx, cy, radius, color = vec3(0.0, 0.0, 0.0)) {
     var angle = 2 * Math.PI / num_fans;
     var center = screen2vert(cx, cy)
 
-    for (i = 0; i < num_fans; i++) {
+    for (var i = 0; i < num_fans; i++) {
         verts.push(...center);
         verts.push(...color);
 
@@ -218,11 +227,28 @@ function scale2range(num, old_top, old_bottom, new_top, new_bottom) {
 }
 
 class Bacteria {
+    static allBacterias = [];
+
+    static colors = [
+
+    ];
+
     constructor(center_x, center_y, radius, color = vec3(1.0, 0.0, 0.0)) {
         this.center_x = center_x;
         this.center_y = center_y;
         this.radius = radius;
         this.color = color;
+    }
+
+    static generateRandomBacteria() {
+        var point = getRandomPointOnCircumference(canvas.width / 2, canvas.height / 2, disk_radius);
+        return new Bacteria(point[0], point[1], 10, Bacteria.getRandomColor());
+    }
+
+    static getRandomColor() {
+        //hslToRgb(~~(360 * Math.random()), 0.7, 0.8);
+        return rgbTopercentage(hslToRgb(Math.random() , 0.7, 0.8));
+        return vec3(1.0, 0.0, 0.0);
     }
 
     colideWith(other) {
@@ -232,13 +258,38 @@ class Bacteria {
         );
     }
 
+    colideWithPoint(x, y) {
+        return this.radius * this.radius > ((this.center_x - x) * (this.center_x - x) + (this.center_y - y) * (this.center_y - y));
+    }
+
     generateVerticies() {
-        return generateCircleVerticies(
-            this.center_x,
-            this.center_y,
-            this.radius,
-            this.color
-        )
+
+        var verts = [];
+        /*
+        x, y,    r, g, b,
+        x, y,    r, g, b
+        */
+        var num_fans = 50;
+        var angle = 2 * Math.PI / num_fans;
+        var center = screen2vert(this.center_x, this.center_y)
+
+        for (var i = 0; i < num_fans; i++) {
+            verts.push(...center);
+            verts.push(...this.color);
+
+            var a = i * angle;
+            var x = Math.cos(a) * this.radius + this.center_x;
+            var y = Math.sin(a) * this.radius + this.center_y;
+            verts.push(...screen2vert(x, y));
+            verts.push(...this.color)
+
+            var a = (i + 1) * angle;
+            var x = Math.cos(a) * this.radius + this.center_x;
+            var y = Math.sin(a) * this.radius + this.center_y;
+            verts.push(...screen2vert(x, y));
+            verts.push(...this.color)
+        }
+        return verts;
     }
 }
 
