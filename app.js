@@ -45,57 +45,62 @@ function main() {
 
 
     //var circlevert = generateCircleVerticies(0, 0, 0, '');
-    var circlevert = [
-        1.0, 1.0,
-        -1.0, 1.0,
-        -1.0, -1.0,
-        // Second triangle:
-        -1.0, -1.0,
-        1.0, -1.0,
-        1.0, 1.0
+    var p1 = getRandomPointOnCircumference(300, 300, 250);
+    var p2 = getRandomPointOnCircumference(300, 300, 250);
+
+    var bacterias = [
+        new Bacteria(p1[0], p1[1], 10),
+        new Bacteria(p2[0], p2[1], 10)
+
     ];
+    var circlevert = [];
+
     var circlebufferobj = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, circlebufferobj);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(circlevert), gl.STATIC_DRAW);
-    var cpal = gl.getAttribLocation(bacteriaProgram, 'v_position');
-    gl.vertexAttribPointer(
-        cpal, //attribute location
-        2, //number of elements per attribute
-        gl.FLOAT,
-        gl.FALSE,
-        2 * Float32Array.BYTES_PER_ELEMENT,//size of an individual vertex
-        0 * Float32Array.BYTES_PER_ELEMENT//offset from the beginning of a single vertex to this attribute
-    );
-    gl.enableVertexAttribArray(cpal);
-
-
     var diskVertexBufferObj = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, diskVertexBufferObj);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(diskVerts), gl.STATIC_DRAW);
-    var positionAttribLocation = gl.getAttribLocation(diskProgram, 'v_position');
-    gl.vertexAttribPointer(
-        positionAttribLocation, //attribute location
-        2, //number of elements per attribute
-        gl.FLOAT,
-        gl.FALSE,
-        2 * Float32Array.BYTES_PER_ELEMENT,//size of an individual vertex
-        0 * Float32Array.BYTES_PER_ELEMENT//offset from the beginning of a single vertex to this attribute
-    );
-    gl.enableVertexAttribArray(positionAttribLocation);
 
-
-    var radius = 150.0;
+    var radius = 250.0;
     function render() {
-        gl.clear(gl.COLOR_BUFFER_BIT);
+        //gl.clear(gl.COLOR_BUFFER_BIT);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         gl.enable(gl.BLEND);
 
+        bacterias[0].radius += 1;
+        bacterias[1].radius += 1;
+
+        circlevert = bacterias[0].generateVerticies();
+        circlevert.push(...bacterias[1].generateVerticies());
 
         gl.useProgram(bacteriaProgram);
-        gl.drawArrays(gl.TRIANGLES, 0, 360 * 3);
+        gl.bindBuffer(gl.ARRAY_BUFFER, circlebufferobj);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(circlevert), gl.STATIC_DRAW);
+        var cpal = gl.getAttribLocation(bacteriaProgram, 'v_position');
+        gl.vertexAttribPointer(
+            cpal, //attribute location
+            2, //number of elements per attribute
+            gl.FLOAT,
+            gl.FALSE,
+            2 * Float32Array.BYTES_PER_ELEMENT,//size of an individual vertex
+            0 * Float32Array.BYTES_PER_ELEMENT//offset from the beginning of a single vertex to this attribute
+        );
+        gl.enableVertexAttribArray(cpal);
+        gl.drawArrays(gl.TRIANGLES, 0, circlevert.length);
 
-
+        if (bacterias[0].colideWith(bacterias[1])) {
+            alert('TOUCHED');
+        }
         gl.useProgram(diskProgram);
+        gl.bindBuffer(gl.ARRAY_BUFFER, diskVertexBufferObj);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(diskVerts), gl.STATIC_DRAW);
+        var positionAttribLocation = gl.getAttribLocation(diskProgram, 'v_position');
+        gl.vertexAttribPointer(
+            positionAttribLocation, //attribute location
+            2, //number of elements per attribute
+            gl.FLOAT,
+            gl.FALSE,
+            2 * Float32Array.BYTES_PER_ELEMENT,//size of an individual vertex
+            0 * Float32Array.BYTES_PER_ELEMENT//offset from the beginning of a single vertex to this attribute
+        );
+        gl.enableVertexAttribArray(positionAttribLocation);
         var widthHandle = gl.getUniformLocation(diskProgram, "center_x");
         var heightHandle = gl.getUniformLocation(diskProgram, "center_y");
         var radiusHandle = gl.getUniformLocation(diskProgram, "radius");
@@ -107,34 +112,58 @@ function main() {
 
         gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-        //window.requestAnimationFrame(render);
+        window.requestAnimationFrame(render);
     }
     window.requestAnimationFrame(render);
+
+    canvas.onmousedown = function clickEvent(e) {
+        // e = Mouse click event.
+        var rect = e.target.getBoundingClientRect();
+        var x = e.clientX - rect.left; //x position within the element.
+        var y = e.target.height - (e.clientY - rect.top);  //y position within the element.
+        var p = getRandomPointOnCircumference(300, 300, 250);
+        console.log(p)
+        circlevert.push(...generateCircleVerticies(p[0], p[1], 50));
+        //circlevert.push(...generateCircleVerticies(x, y, 50));
+        //console.log(x, y);
+    }
+
 }
 window.onload = main;
 
-function generateCircleVerticies(cx, cy, radius, color) {
+// all in pixels
+function generateCircleVerticies(cx, cy, radius, color = vec4(0.0, 0.0, 0.0, 1.0)) {
+    //var verts = screen2vert(cx, cy);
     var verts = [];
-    for (let i = 1; i <= 360; i++) {
-        var y1 = radius * Math.sin(i) + cy;
-        var x1 = radius * Math.cos(i) + cx;
+    var num_fans = 50;
+    var angle = 2 * Math.PI / num_fans;
+    var center = screen2vert(cx, cy)
 
-        var y2 = radius * Math.sin(i + 1) + cy;
-        var x2 = radius * Math.cos(i + 1) + cx;
+    for (i = 0; i < num_fans; i++) {
+        verts.push(...center);
+        //verts.push(...color);
+        var a = i * angle;
+        var x = Math.cos(a) * radius + cx;
+        var y = Math.sin(a) * radius + cy;
+        verts.push(...screen2vert(x, y));
+        //verts.push(...color)
 
-        verts.push(cx);
-        verts.push(cy);
-        verts.push(0);
-
-        verts.push(x1);
-        verts.push(y1);
-        verts.push(0);
-
-        verts.push(x2);
-        verts.push(y2);
-        verts.push(0);
+        var a = (i + 1) * angle;
+        var x = Math.cos(a) * radius + cx;
+        var y = Math.sin(a) * radius + cy;
+        verts.push(...screen2vert(x, y));
+        //.push(...color)
     }
+    console.log(verts)
     return verts;
+}
+
+function getRandomPointOnCircumference(cx, cy, radius) {
+    var angle = Math.random() * 2 * Math.PI;
+    return vec2(
+        Math.cos(angle) * radius + cx,
+        Math.sin(angle) * radius + cy
+    )
 }
 
 function compileShader(gl, shader, text) {
@@ -151,6 +180,51 @@ function linkProgram(gl, program) {
         console.error('Error linking program!', gl.getProgramInfo(program));
     }
 }
+
+
+function screen2vert(x, y) {
+    return vec2(
+        scale2range(x, canvas.width, 0, 1, -1),
+        scale2range(y, canvas.height, 0, 1, -1)
+    )
+}
+
+function vert2screen(x, y) {
+    return vec2(
+        scale2range(x, 1, -1, canvas.width, 0),
+        scale2range(y, 1, -1, canvas.height, 0)
+    )
+}
+
+function scale2range(num, old_top, old_bottom, new_top, new_bottom) {
+    return (num - old_bottom) / (old_top - old_bottom) * (new_top - new_bottom) + new_bottom
+}
+
+class Bacteria {
+    constructor(center_x, center_y, radius, color = vec3(0.0, 0.0, 0.0)) {
+        this.center_x = center_x;
+        this.center_y = center_y;
+        this.radius = radius;
+        this.color = color;
+    }
+
+    colideWith(other) {
+        return ((this.radius + other.radius) * (this.radius + other.radius)) > (
+            (this.center_x - other.center_x) * (this.center_x - other.center_x) +
+            (this.center_y - other.center_y) * (this.center_y - other.center_y)
+        );
+    }
+
+    generateVerticies() {
+        return generateCircleVerticies(
+            this.center_x,
+            this.center_y,
+            this.radius,
+            this.color
+        )
+    }
+}
+
 
 const diskVertexShaderText = `
 precision mediump float;
@@ -177,7 +251,7 @@ void main() {
         //transparent cutout
         gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
     } else {
-        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+        gl_FragColor = vec4(0.968627451, 0.145098039, 0.521568627, 1.0);
     }
 }
 `;
