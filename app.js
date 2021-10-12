@@ -79,11 +79,23 @@ function main() {
             2, //number of elements per attribute
             gl.FLOAT,
             gl.FALSE,
-            2 * Float32Array.BYTES_PER_ELEMENT,//size of an individual vertex
+            5 * Float32Array.BYTES_PER_ELEMENT,//size of an individual vertex
             0 * Float32Array.BYTES_PER_ELEMENT//offset from the beginning of a single vertex to this attribute
         );
+        var ccolor = gl.getAttribLocation(bacteriaProgram, 'v_color');
+        gl.vertexAttribPointer(
+            ccolor, //attribute location
+            3, //number of elements per attribute
+            gl.FLOAT,
+            gl.FALSE,
+            5 * Float32Array.BYTES_PER_ELEMENT,//size of an individual vertex
+            2 * Float32Array.BYTES_PER_ELEMENT//offset from the beginning of a single vertex to this attribute
+        );
+
         gl.enableVertexAttribArray(cpal);
-        gl.drawArrays(gl.TRIANGLES, 0, circlevert.length);
+        gl.enableVertexAttribArray(ccolor);
+
+        gl.drawArrays(gl.TRIANGLES, 0, circlevert.length / 5 * 2);
 
         if (bacterias[0].colideWith(bacterias[1])) {
             alert('TOUCHED');
@@ -132,27 +144,32 @@ function main() {
 window.onload = main;
 
 // all in pixels
-function generateCircleVerticies(cx, cy, radius, color = vec4(0.0, 0.0, 0.0, 1.0)) {
+function generateCircleVerticies(cx, cy, radius, color = vec3(0.0, 0.0, 0.0)) {
     //var verts = screen2vert(cx, cy);
     var verts = [];
+    /*
+    x, y,    r, g, b,
+    x, y,    r, g, b
+    */
     var num_fans = 50;
     var angle = 2 * Math.PI / num_fans;
     var center = screen2vert(cx, cy)
 
     for (i = 0; i < num_fans; i++) {
         verts.push(...center);
-        //verts.push(...color);
+        verts.push(...color);
+
         var a = i * angle;
         var x = Math.cos(a) * radius + cx;
         var y = Math.sin(a) * radius + cy;
         verts.push(...screen2vert(x, y));
-        //verts.push(...color)
+        verts.push(...color)
 
         var a = (i + 1) * angle;
         var x = Math.cos(a) * radius + cx;
         var y = Math.sin(a) * radius + cy;
         verts.push(...screen2vert(x, y));
-        //.push(...color)
+        verts.push(...color)
     }
     console.log(verts)
     return verts;
@@ -201,7 +218,7 @@ function scale2range(num, old_top, old_bottom, new_top, new_bottom) {
 }
 
 class Bacteria {
-    constructor(center_x, center_y, radius, color = vec3(0.0, 0.0, 0.0)) {
+    constructor(center_x, center_y, radius, color = vec3(1.0, 0.0, 0.0)) {
         this.center_x = center_x;
         this.center_y = center_y;
         this.radius = radius;
@@ -260,18 +277,22 @@ const bacteriaVertexShaderText = `
 precision mediump float;
 
 attribute vec4 v_position;
+attribute vec3 v_color;
+
+varying vec3 f_color;
 
 void main() {
     gl_Position = v_position;
+    f_color = v_color;
 } 
 `;
 
 const bacteriaFragmentShaderText = `
 precision mediump float;
 
-uniform vec4 f_color;
+varying vec3 f_color;
 
 void main() {
-    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    gl_FragColor = vec4(f_color, 1.0);
 }
 `;
