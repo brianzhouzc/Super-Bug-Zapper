@@ -4,7 +4,7 @@ var canvas;
 /** @type {WebGLRenderingContext} */
 var gl;
 
-const disk_radius = 300.0;
+const disk_radius = 280.0;
 
 function main() {
     canvas = document.getElementById("glCanvas");
@@ -53,6 +53,7 @@ function main() {
 
     var circlevert = [];
 
+
     var circlebufferobj = gl.createBuffer();
     var diskVertexBufferObj = gl.createBuffer();
 
@@ -65,8 +66,15 @@ function main() {
         circlevert = [];
         console.log(Bacteria.allBacterias.length)
 
+        if (Bacteria.allBacterias.length > 1) {
+            for (var i = 0; i < Bacteria.allBacterias.length - 1; i++) {
+                if (Bacteria.allBacterias[i].colideWith(Bacteria.allBacterias[i + 1]))
+                    Bacteria.allBacterias.splice(i + 1, 1)
+            }
+        }
+
         Bacteria.allBacterias.forEach(bacteria => {
-            bacteria.radius += 1;
+            Bacteria.allBacterias[i].radius += 1;
             circlevert.push(...bacteria.generateVerticies());
         })
 
@@ -131,24 +139,24 @@ function main() {
         var rect = e.target.getBoundingClientRect();
         var x = e.clientX - rect.left; //x position within the element.
         var y = e.target.height - (e.clientY - rect.top);  //y position within the element.
-
-        var toberemove = []
-        for (var i = 0; i < Bacteria.allBacterias.length; i ++) {
-            var bacteria = Bacteria.allBacterias[i];
-            if (bacteria.colideWithPoint(x, y)) {
-                toberemove.push(Bacteria.allBacterias.indexOf(bacteria));
-                break;
+        if (!isOutsideOfDisk(x, y)) {
+            var toberemove = []
+            for (var i = 0; i < Bacteria.allBacterias.length; i++) {
+                var bacteria = Bacteria.allBacterias[i];
+                if (bacteria.colideWithPoint(x, y)) {
+                    toberemove.push(Bacteria.allBacterias.indexOf(bacteria));
+                    break;
+                }
             }
-        }
 
+            toberemove.forEach(index => {
+                Bacteria.allBacterias.splice(index, 1)
 
-        toberemove.forEach(index => {
-            Bacteria.allBacterias.splice(index, 1)
+            })
 
-        })
-
-        for (var i = 0; i < toberemove.length; i++) {
-            Bacteria.allBacterias.push(Bacteria.generateRandomBacteria())
+            for (var i = 0; i < toberemove.length; i++) {
+                Bacteria.allBacterias.push(Bacteria.generateRandomBacteria())
+            }
         }
     }
 
@@ -210,6 +218,10 @@ function linkProgram(gl, program) {
     }
 }
 
+function isOutsideOfDisk(x, y) {
+    return disk_radius * disk_radius <
+        (canvas.width / 2 - x) * (canvas.width / 2 - x) + (canvas.height / 2 - y) * (canvas.height / 2 - y)
+}
 
 function screen2vert(x, y) {
     return vec2(
