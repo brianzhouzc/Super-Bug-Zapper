@@ -16,12 +16,18 @@
 </head>
 
 <body>
-    <div class="center">
-        <div>
-            <canvas id="glCanvas" width="600" height="600"></canvas>
+    <div class="container">
+        <div id="ui_container">
+            <div class="ui_text">
+                <p>Current Score: <span id="current_score">0</span></p>
+            </div>
+            <div class="ui_text">
+                <p>Highest Score: <span id="highest_score">0</span></p>
+            </div>
+            <div id="start_button" class="button">Start Game</div>
         </div>
-        <div>
-            <button type="button" class="btn btn-primary btn-lg">Large button</button>
+        <div id="canvas_container" class="center">
+            <canvas id="glCanvas" width="600" height="600"></canvas>
         </div>
     </div>
 </body>

@@ -1,3 +1,8 @@
+var playing = false;
+var current_points = 0;
+var highest_points = 0;
+
+
 /** @type {HTMLCanvasElement} */
 var canvas;
 
@@ -19,66 +24,21 @@ const disk_verts = [
 
 function main() {
     init();
-
-    function logic() {
-        canvas = document.getElementById("glCanvas");
-        gl = canvas.getContext("webgl");
-
-        gl.viewport(0, 0, canvas.width, canvas.height);
-    }
-
     function render() {
         gl.clearColor(0.968627451, 0.929411765, 0.88627451, 1);
         gl.clear(gl.COLOR_BUFFER_BIT)
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         gl.enable(gl.BLEND);
 
-
-        /*
-        if (Bacteria.allBacterias.length > 1) {
-            for (var i = 0; i < Bacteria.allBacterias.length - 1; i++) {
-                if (Bacteria.allBacterias[i].colideWith(Bacteria.allBacterias[i + 1]))
-                    Bacteria.allBacterias.splice(i + 1, 1)
-            }
+        if (playing) {
+            logic();
+            draw_bacterias();
         }
-*/
-        Bacteria.allBacterias.forEach(bacteria => {
-            bacteria.radius += 0.1;
-        })
-
-        draw_bacterias(circlevert);
         draw_disk();
 
         window.requestAnimationFrame(render);
     }
     window.requestAnimationFrame(render);
-
-    canvas.onmousedown = function clickEvent(e) {
-        // e = Mouse click event.
-        var rect = e.target.getBoundingClientRect();
-        var x = e.clientX - rect.left; //x position within the element.
-        var y = e.target.height - (e.clientY - rect.top);  //y position within the element.
-        if (!isOutsideOfDisk(x, y)) {
-            var toberemove = []
-            for (var i = 0; i < Bacteria.allBacterias.length; i++) {
-                var bacteria = Bacteria.allBacterias[i];
-                if (bacteria.colideWithPoint(x, y)) {
-                    toberemove.push(Bacteria.allBacterias.indexOf(bacteria));
-                    break;
-                }
-            }
-
-            toberemove.forEach(index => {
-                Bacteria.allBacterias.splice(index, 1)
-
-            })
-
-            for (var i = 0; i < toberemove.length; i++) {
-                Bacteria.allBacterias.push(Bacteria.generateRandomBacteria())
-            }
-        }
-    }
-
 }
 window.onload = main;
 
@@ -111,9 +71,22 @@ function init() {
     linkProgram(gl, bacteriaProgram);
     linkProgram(gl, diskProgram);
 
-    //Initialize logic
-    for (var i = 0; i < 5; i++)
-        Bacteria.allBacterias.push(Bacteria.generateRandomBacteria());
+
+    document.getElementById("start_button").onclick = start_game;
+    canvas.onmousedown = clickEvent;
+}
+
+function start_game() {
+    if (!playing) {
+        Bacteria.allBacterias = [];
+        var amount = Math.floor(randomBetweenInterval(2, 5));
+        for (var i = 0; i < amount; i++)
+            Bacteria.allBacterias.push(Bacteria.generateRandomBacteria());
+
+        current_points = 0;
+
+        playing = true;
+    }
 }
 
 function draw_bacterias() {
@@ -151,6 +124,7 @@ function draw_bacterias() {
 
     gl.drawArrays(gl.TRIANGLES, 0, bacteriaVerticies.length / 5 * 2);
 }
+
 function draw_disk() {
     gl.useProgram(diskProgram);
 
@@ -176,6 +150,86 @@ function draw_disk() {
     gl.uniform1f(radiusHandle, disk_radius);
 
     gl.drawArrays(gl.TRIANGLES, 0, 6);
+}
+
+var last_spawn = Date.now();
+function logic() {
+
+    //Process mouse event
+    while (mouse_coords.length) {
+        var coord = mouse_coords.shift();
+        var b_index = Bacteria.allBacterias.length;
+        while (b_index--) {
+            if (Bacteria.allBacterias[b_index].collideWithPoint(coord[0], coord[1])) {
+                var bacteria = Bacteria.allBacterias[b_index];
+                Date.now() - bacteria.spawn_time;
+                current_points += Math.max(1, 10 - Math.ceil((Date.now() - bacteria.spawn_time) / 100));
+                document.getElementById("current_score").innerHTML = current_points;
+
+                for (var i = 0; i < 30; i++) {
+                    createParticle(coord[2], coord[3]);
+                }
+                Bacteria.allBacterias.splice(b_index, 1);
+                break;
+            }
+        }
+    }
+
+    //Collision with other bacterias
+    var toberemove = -1;
+    for (var i = 0; i < Bacteria.allBacterias.length - 1; i++) {
+        for (var j = i + 1; j < Bacteria.allBacterias.length; j++) {
+            if (Bacteria.allBacterias[i].collideWith(Bacteria.allBacterias[j])) {
+                toberemove = j;
+                break;
+            }
+        }
+    }
+    if (toberemove > -1)
+        Bacteria.allBacterias.splice(toberemove, 1);
+
+    //Process gameover
+    var game_over_amount = 2;
+    var count = 0;
+    Bacteria.allBacterias.forEach(bacteria => {
+        if (bacteria.radius > 150) {
+            count++;
+        }
+    });
+    if (count >= game_over_amount) {
+        alert('Game Over! You got ' + current_points + ' points!');
+        if (current_points > highest_points)
+            highest_points = current_points;
+        document.getElementById("highest_score").innerHTML = highest_points;
+        playing = false;
+    }
+
+    //Spawn more bacteria if below value
+    var spawn_interval = Math.floor(randomBetweenInterval(300, 600));
+    if (Bacteria.allBacterias.length <= 10) {
+        if (Date.now() - last_spawn > spawn_interval) {
+            Bacteria.allBacterias.push(Bacteria.generateRandomBacteria());
+            last_spawn = Date.now();
+        }
+    }
+
+    //Increment size
+    var radius_increment = 0.5;
+    Bacteria.allBacterias.forEach(bacteria => {
+        bacteria.radius += radius_increment;
+    })
+}
+
+var mouse_coords = [];
+function clickEvent(e) {
+    if (playing) {
+        var rect = e.target.getBoundingClientRect();
+        var x = e.clientX - rect.left; //x position within the element.
+        var y = e.target.height - (e.clientY - rect.top);  //y position within the element.
+        if (!isOutsideOfDisk(x, y)) {
+            mouse_coords.push(vec4(x, y, e.clientX, e.clientY));
+        }
+    }
 }
 
 function getRandomPointOnCircumference(cx, cy, radius) {
@@ -224,12 +278,39 @@ function scale2range(num, old_top, old_bottom, new_top, new_bottom) {
     return (num - old_bottom) / (old_top - old_bottom) * (new_top - new_bottom) + new_bottom
 }
 
+function createParticle(x, y) {
+    const particle = document.createElement('particle');
+    document.body.appendChild(particle);
+
+    const size = Math.floor(Math.random() * 20 + 5);
+    particle.style.width = `${size}px`;
+    particle.style.height = `${size}px`;
+    particle.style.background = `hsl(${Math.random() * 360}, ${25 + 70 * Math.random()}%, ${70 + 10 * Math.random()}%`;
+
+    const destinationX = x + (Math.random() - 0.5) * 2 * 75;
+    const destinationY = y + (Math.random() - 0.5) * 2 * 75;
+
+    const animation = particle.animate([
+        {
+            transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
+            opacity: 1
+        },
+        {
+            transform: `translate(${destinationX}px, ${destinationY}px)`,
+            opacity: 0
+        }
+    ], {
+        duration: Math.random() * 1000 + 500,
+        easing: 'cubic-bezier(0, .9, .57, 1)',
+        delay: Math.random() * 200
+    });
+
+    animation.onfinish = () => {
+        particle.remove();
+    };
+}
 class Bacteria {
     static allBacterias = [];
-
-    static colors = [
-
-    ];
 
     constructor(center_x, center_y, radius, color = vec3(1.0, 0.0, 0.0)) {
         this.spawn_time = Date.now();
@@ -239,30 +320,45 @@ class Bacteria {
         this.color = color;
     }
 
-    static generateRandomBacteria() {
-        var point = getRandomPointOnCircumference(canvas.width / 2, canvas.height / 2, disk_radius);
-        return new Bacteria(point[0], point[1], 10, Bacteria.getRandomColor());
+    static generateRandomBacteria(radius = 0) {
+        var bacteria;
+        var done = false;
+        while (!done) {
+            var point = getRandomPointOnCircumference(canvas.width / 2, canvas.height / 2, disk_radius);
+            bacteria = new Bacteria(point[0], point[1], radius > 0 ? radius : randomBetweenInterval(5, 50), Bacteria.getRandomColor());
+
+            done = true;
+            for (var i = 0; i < Bacteria.allBacterias.length; i++) {
+                if (bacteria.collideWith(Bacteria.allBacterias[i]))
+                    done = false;
+            }
+        }
+        return bacteria;
     }
 
     static getRandomColor() {
-        //hslToRgb(~~(360 * Math.random()), 0.7, 0.8);
-        return rgbTopercentage(hslToRgb(Math.random(), 0.7, 0.8));
-        return vec3(1.0, 0.0, 0.0);
+        return rgbTopercentage(hslToRgb(Math.random(), 0.25 + 0.7 * Math.random(), 0.7 + 0.1 * Math.random()));
     }
 
-    colideWith(other) {
+    collideWith(other) {
         return ((this.radius + other.radius) * (this.radius + other.radius)) > (
             (this.center_x - other.center_x) * (this.center_x - other.center_x) +
             (this.center_y - other.center_y) * (this.center_y - other.center_y)
         );
     }
 
-    colideWithPoint(x, y) {
+    collideWithPoint(x, y) {
         return this.radius * this.radius > ((this.center_x - x) * (this.center_x - x) + (this.center_y - y) * (this.center_y - y));
     }
 
-    generateVerticies() {
+    collideWithOthers() {
+        for (var i = 0; i < allBacterias.length - 1; i++) {
+            for (var j = i + 1; j < allBacterias.length; j++) {
+            }
+        }
+    }
 
+    generateVerticies() {
         var verts = [];
         /*
         x, y,    r, g, b,
@@ -292,6 +388,9 @@ class Bacteria {
     }
 }
 
+function randomBetweenInterval(min, max) { // min and max included 
+    return Math.random() * (max - min + 1) + min;
+}
 
 const diskVertexShaderText = `
 precision mediump float;
