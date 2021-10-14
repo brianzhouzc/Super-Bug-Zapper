@@ -55,6 +55,12 @@ body {
     font-size: 20px;
 }
 
+.tips {
+    text-align: center;
+    color: #ffe5e5;
+    font-size: 14px;
+}
+
 :root {
     --background-color: #ffe5e5;
     --color: #000000;
@@ -68,6 +74,7 @@ body {
 .button {
     text-align: center;
     margin-top: 50px;
+    margin-bottom: 50px;
     padding: 10px 30px;
     font-size: 24px;
     cursor: pointer;

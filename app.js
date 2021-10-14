@@ -57,13 +57,6 @@ function init() {
     gl = canvas.getContext("webgl");
     ctx = particle_canvas.getContext("2d");
 
-    ctx.beginPath();
-    ctx.fillStyle = "black";
-    // After setting the fill style, draw an arc on the canvas
-    ctx.arc(100, 100, 10, 0, Math.PI * 2, true);
-    ctx.closePath();
-    ctx.fill();
-
     gl.viewport(0, 0, canvas.width, canvas.height);
 
     var bacteriaVertexShader = gl.createShader(gl.VERTEX_SHADER);
@@ -131,7 +124,6 @@ function game_logic() {
 
                     for (var i = 0; i < 30; i++) {
                         Particle.allParticles.push(new Particle(coord[2], coord[3]));
-                        //createParticle(coord[2], coord[3]);
                     }
                     Bacteria.allBacterias.splice(b_index, 1);
                     break;
@@ -161,9 +153,6 @@ function game_logic() {
             if (Bacteria.allBacterias[i].collideWith(Bacteria.allBacterias[j])) {
                 Bacteria.allBacterias[j].next_radius = 0;
                 Bacteria.allBacterias[i].next_radius += Bacteria.allBacterias[j].radius;
-
-                //Bacteria.allBacterias[i].radius += Bacteria.allBacterias[j].radius;
-                //toberemove = j;
                 break;
             }
         }
@@ -212,7 +201,6 @@ function game_logic() {
                 bacteria.updateRadius(radius_increment);
             }
         }
-        //bacteria.radius += radius_increment;
     })
 }
 
@@ -316,47 +304,7 @@ function draw_particles() {
     });
 }
 
-// Helpers
-function getRandomPointOnCircumference(cx, cy, radius) {
-    var angle = Math.random() * 2 * Math.PI;
-    return vec2(
-        Math.cos(angle) * radius + cx,
-        Math.sin(angle) * radius + cy
-    )
-}
-
-function compileShader(gl, shader, text) {
-    gl.shaderSource(shader, text);
-    gl.compileShader(shader);
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        console.error('Error compiling shader!', gl.getShaderInfoLog(shader));
-    }
-}
-
-function linkProgram(gl, program) {
-    gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        console.error('Error linking program!', gl.getProgramInfo(program));
-    }
-}
-
-function screen2vert(x, y) {
-    return vec2(
-        scale2range(x, canvas.width, 0, 1, -1),
-        scale2range(y, canvas.height, 0, 1, -1)
-    )
-}
-
-function vert2screen(x, y) {
-    return vec2(
-        scale2range(x, 1, -1, canvas.width, 0),
-        scale2range(y, 1, -1, canvas.height, 0)
-    )
-}
-
-function scale2range(num, old_top, old_bottom, new_top, new_bottom) {
-    return (num - old_bottom) / (old_top - old_bottom) * (new_top - new_bottom) + new_bottom
-}
+// Classes
 class Bacteria {
     static allBacterias = [];
 
@@ -468,13 +416,54 @@ class Particle {
             this.transparency = 0.0;
         }
     }
+}
 
-    //Math.random() - 0.5) * 2 * 75
+// Helpers
+function getRandomPointOnCircumference(cx, cy, radius) {
+    var angle = Math.random() * 2 * Math.PI;
+    return vec2(
+        Math.cos(angle) * radius + cx,
+        Math.sin(angle) * radius + cy
+    )
+}
+
+function compileShader(gl, shader, text) {
+    gl.shaderSource(shader, text);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        console.error('Error compiling shader!', gl.getShaderInfoLog(shader));
+    }
+}
+
+function linkProgram(gl, program) {
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.error('Error linking program!', gl.getProgramInfo(program));
+    }
+}
+
+function screen2vert(x, y) {
+    return vec2(
+        scale2range(x, canvas.width, 0, 1, -1),
+        scale2range(y, canvas.height, 0, 1, -1)
+    )
+}
+
+function vert2screen(x, y) {
+    return vec2(
+        scale2range(x, 1, -1, canvas.width, 0),
+        scale2range(y, 1, -1, canvas.height, 0)
+    )
+}
+
+function scale2range(num, old_top, old_bottom, new_top, new_bottom) {
+    return (num - old_bottom) / (old_top - old_bottom) * (new_top - new_bottom) + new_bottom
 }
 
 function randomBetweenInterval(min, max) { // min and max included 
     return Math.random() * (max - min + 1) + min;
 }
+
 
 const diskVertexShaderText = `
 precision mediump float;

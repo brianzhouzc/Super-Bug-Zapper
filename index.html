@@ -2,10 +2,7 @@
 <html>
 
 <head>
-    <title>Project 1</title>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous">
-    </script>
+    <title>Super Bug Zapper</title>
     <script src="color-conversion.js"></script>
     <script src="MV.js"></script>
     <script src="app.js"></script>
@@ -19,12 +16,23 @@
     <div class="container">
         <div id="ui_container">
             <div class="ui_text">
+                <h2>Super Bug Zapper!</h2>
+                <br>
+            </div>
+            <div class="ui_text">
                 <p>Current Score: <span id="current_score">0</span></p>
             </div>
             <div class="ui_text">
                 <p>Highest Score: <span id="highest_score">0</span></p>
             </div>
             <div id="start_button" class="button">Start Game</div>
+            <div class="tips">
+                <p>Tips:</p>
+                <p>Click the bacterias to kill them!</p>
+                <p>The faster you click, the higer the score you get!</p>
+                <p>When two bacterias touch, one consumes the other!</p>
+                <p>Don't let them grow too big, otherwise it's gameover!</p>
+            </div>
         </div>
         <div id="canvas_container">
             <canvas id="glCanvas" width="600" height="600"></canvas>
