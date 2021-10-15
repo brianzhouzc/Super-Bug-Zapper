@@ -1,4 +1,4 @@
-# Super-Bug-Zapper
+# Super Bug Zapper
 #### A mini game created with WebGL, for the COSC 414 Computer Graphics course
 ![Screenshot](https://github.com/brianzhouzc/Super-Bug-Zapper/blob/main/screenshot.png)
 |Features||
